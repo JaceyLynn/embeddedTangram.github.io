@@ -1,125 +1,129 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <title>Draggable Tangrams</title>
-  <!-- p5.js core library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
-  <style>
-    /* Remove default margins and overflow so canvas fills the page */
-    html, body { margin: 0; padding: 0; overflow: hidden; }
-  </style>
-</head>
-<body>
-  <script>
-    // ——— p5 instance-mode sketch ———
-    const sketch = (s) => {
-      let pieces = [], selected = null, offset;
+<!-- Paste this into a Webflow Embed element -->
+<div id="p5-sketch"></div>
 
-      s.setup = () => {
-        s.createCanvas(s.windowWidth, s.windowHeight);
-        const large = 200,
-              med   = large / Math.SQRT2,
-              small = 100;
+<style>
+  /* full-screen & behind everything */
+  #p5-sketch {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    pointer-events: none;
+  }
+  body { margin: 0; }
+</style>
 
-        // Define the 7 tangram shapes
-        const vertsArr = [
-          [[0,0],[large,0],[0,large]],            // big
-          [[0,0],[large,0],[0,large]],            // big
-          [[0,0],[med,0],[0,med]],                // medium
-          [[0,0],[small,0],[0,small]],            // small
-          [[0,0],[small,0],[0,small]],            // small
-          [[0,0],[small,0],[small,small],[0,small]], // square
-          [[0,0],[small,0],[1.5*small,small],[0.5*small,small]] // parallelogram
-        ];
-        const cols = ['#ff6666','#66ff66','#6666ff','#ffff66','#66ffff','#ff66ff','#ffffff'];
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+<script>
+  const sketch = (s) => {
+    let pieces = [], selected = null, offset;
 
-        // Scatter and rotate
-        for (let i = 0; i < vertsArr.length; i++) {
-          const x     = s.random(small, s.width - small),
-                y     = s.random(small, s.height - small),
-                angle = s.random(s.TWO_PI);
-          pieces.push(new Piece(vertsArr[i], x, y, angle, cols[i], s));
-        }
-      };
+    s.setup = () => {
+      s.createCanvas(s.windowWidth, s.windowHeight);
+      const large = 200,
+            med   = large/Math.SQRT2,
+            small = 100;
 
-      s.draw = () => {
-        s.clear();               // transparent background
-        pieces.forEach(p => p.display());
-      };
+      // the seven tangram shapes
+      const vertsArr = [
+        [[0,0],[large,0],[0,large]],               // big ×2
+        [[0,0],[large,0],[0,large]],
+        [[0,0],[med,0],[0,med]],                   // medium
+        [[0,0],[small,0],[0,small]],               // small ×2
+        [[0,0],[small,0],[0,small]],
+        [[0,0],[small,0],[small,small],[0,small]], // square
+        [[0,0],[small,0],[1.5*small,small],[0.5*small,small]] // parallelogram
+      ];
 
-      s.mousePressed = () => {
-        // pick topmost piece under mouse
-        for (let i = pieces.length - 1; i >= 0; i--) {
-          if (pieces[i].contains(s.mouseX, s.mouseY)) {
-            selected = pieces[i];
-            offset   = s.createVector(s.mouseX, s.mouseY).sub(selected.pos);
-            // bring to front
-            pieces.push(pieces.splice(i,1)[0]);
-            return;
-          }
-        }
-      };
+      // colors pulled from your image, in that same order:
+      const cols = [
+        '#E08B60', // large-1 (orange)
+        '#D7446C', // large-2 (pink)
+        '#4A90E2', // medium  (blue)
+        '#F4C15F', // small-1 (yellow)
+        '#C73177', // small-2 (magenta)
+        '#4E2A75', // square  (purple)
+        '#84B971'  // parallelogram (green)
+      ];
 
-      s.mouseDragged = () => {
-        if (selected) {
-          const m = s.createVector(s.mouseX, s.mouseY);
-          selected.pos = m.sub(offset);
-        }
-      };
-
-      s.mouseReleased = () => { selected = null; };
-
-      s.windowResized = () => {
-        s.resizeCanvas(s.windowWidth, s.windowHeight);
-      };
-
-      // ————— Piece class —————
-      class Piece {
-        constructor(verts, x, y, angle, col, s) {
-          this.vertices = verts;
-          this.pos      = s.createVector(x, y);
-          this.angle    = angle;
-          this.col      = col;
-          this.s        = s;
-        }
-        display() {
-          const s = this.s;
-          s.push();
-          s.translate(this.pos.x, this.pos.y);
-          s.rotate(this.angle);
-          s.fill(this.col);
-          s.noStroke();
-          s.beginShape();
-          this.vertices.forEach(v => s.vertex(v[0], v[1]));
-          s.endShape(s.CLOSE);
-          s.pop();
-        }
-        contains(mx, my) {
-          const s = this.s;
-          const dx = mx - this.pos.x, dy = my - this.pos.y;
-          const tx = dx * s.cos(-this.angle) - dy * s.sin(-this.angle);
-          const ty = dx * s.sin(-this.angle) + dy * s.cos(-this.angle);
-          return pointInPolygon(tx, ty, this.vertices);
-        }
-      }
-
-      // standard ray-casting point-in-polygon
-      function pointInPolygon(x, y, vs) {
-        let inside = false;
-        for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-          const xi = vs[i][0], yi = vs[i][1];
-          const xj = vs[j][0], yj = vs[j][1];
-          const intersect = ((yi > y) !== (yj > y))
-                         && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-          if (intersect) inside = !inside;
-        }
-        return inside;
+      // scatter them initially (you can later hard-code x,y,angle here)
+      for (let i = 0; i < vertsArr.length; i++) {
+        const x     = s.random(small,  s.width  - small),
+              y     = s.random(small,  s.height - small),
+              angle = s.random(s.TWO_PI);
+        pieces.push(new Piece(vertsArr[i], x, y, angle, cols[i], s));
       }
     };
 
-    // instantiate it, full-page
-    new p5(sketch);
-  </script>
-</body>
-</html>
+    s.draw = () => {
+      s.clear();
+      pieces.forEach(p => p.display());
+    };
+
+    s.mousePressed = () => {
+      for (let i = pieces.length - 1; i >= 0; i--) {
+        if (pieces[i].contains(s.mouseX, s.mouseY)) {
+          selected = pieces[i];
+          offset   = s.createVector(s.mouseX, s.mouseY).sub(selected.pos);
+          pieces.push(pieces.splice(i,1)[0]);
+          return;
+        }
+      }
+    };
+
+    s.mouseDragged = () => {
+      if (selected) {
+        const m = s.createVector(s.mouseX, s.mouseY);
+        selected.pos = m.sub(offset);
+      }
+    };
+
+    s.mouseReleased = () => { selected = null; };
+    s.windowResized = () => { s.resizeCanvas(s.windowWidth, s.windowHeight); };
+
+    class Piece {
+      constructor(verts, x, y, angle, col, s) {
+        this.vertices = verts;
+        this.pos      = s.createVector(x, y);
+        this.angle    = angle;
+        this.col      = col;
+        this.s        = s;
+      }
+      display() {
+        const s = this.s;
+        s.push();
+        s.translate(this.pos.x, this.pos.y);
+        s.rotate(this.angle);
+        s.fill(this.col);
+        s.noStroke();
+        s.beginShape();
+        this.vertices.forEach(v => s.vertex(v[0], v[1]));
+        s.endShape(s.CLOSE);
+        s.pop();
+      }
+      contains(mx, my) {
+        const s = this.s;
+        const dx = mx - this.pos.x,
+              dy = my - this.pos.y,
+              tx = dx * s.cos(-this.angle) - dy * s.sin(-this.angle),
+              ty = dx * s.sin(-this.angle) + dy * s.cos(-this.angle);
+        return pointInPolygon(tx, ty, this.vertices);
+      }
+    }
+
+    function pointInPolygon(x, y, vs) {
+      let inside = false;
+      for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        const xi = vs[i][0], yi = vs[i][1],
+              xj = vs[j][0], yj = vs[j][1],
+              intersect = ((yi > y) !== (yj > y))
+                        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+  };
+
+  new p5(sketch, 'p5-sketch');
+</script>
+
