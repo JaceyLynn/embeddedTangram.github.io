@@ -14,6 +14,7 @@
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+
 <script>
   const sketch = (s) => {
     let pieces = [], selected = null, offset;
@@ -35,29 +36,27 @@
         [[0,0],[small,0],[1.5*small,small],[0.5*small,small]] // parallelogram
       ];
 
-      // colors pulled from your image, in that same order:
       const cols = [
-        '#E08B60', // large-1 (orange)
-        '#D7446C', // large-2 (pink)
-        '#4A90E2', // medium  (blue)
-        '#F4C15F', // small-1 (yellow)
-        '#C73177', // small-2 (magenta)
-        '#4E2A75', // square  (purple)
-        '#84B971'  // parallelogram (green)
+        '#E08B60', '#D7446C', '#4A90E2',
+        '#F4C15F', '#C73177', '#4E2A75', '#84B971'
       ];
 
-      // scatter them initially (you can later hard-code x,y,angle here)
       for (let i = 0; i < vertsArr.length; i++) {
         const x     = s.random(small,  s.width  - small),
               y     = s.random(small,  s.height - small),
               angle = s.random(s.TWO_PI);
-        pieces.push(new Piece(vertsArr[i], x, y, angle, cols[i], s));
+        pieces.push(
+          new Piece(vertsArr[i], x, y, angle, cols[i], s)
+        );
       }
     };
 
     s.draw = () => {
       s.clear();
-      pieces.forEach(p => p.display());
+      pieces.forEach(p => {
+        if (!selected || p !== selected) p.update();  // only auto‑move if not dragging
+        p.display();
+      });
     };
 
     s.mousePressed = () => {
@@ -88,7 +87,21 @@
         this.angle    = angle;
         this.col      = col;
         this.s        = s;
+        // ← new: tiny random velocity
+        this.vel = s.createVector(
+          s.random(-0.5, 0.5),
+          s.random(-0.5, 0.5)
+        );
       }
+
+      update() {
+        const s = this.s;
+        this.pos.add(this.vel);
+        // bounce off edges
+        if (this.pos.x < 0 || this.pos.x > s.width)  this.vel.x *= -1;
+        if (this.pos.y < 0 || this.pos.y > s.height) this.vel.y *= -1;
+      }
+
       display() {
         const s = this.s;
         s.push();
@@ -101,6 +114,7 @@
         s.endShape(s.CLOSE);
         s.pop();
       }
+
       contains(mx, my) {
         const s = this.s;
         const dx = mx - this.pos.x,
