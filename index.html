@@ -25,7 +25,6 @@
             med   = large/Math.SQRT2,
             small = 100;
 
-      // the seven tangram shapes
       const vertsArr = [
         [[0,0],[large,0],[0,large]],               // big ×2
         [[0,0],[large,0],[0,large]],
@@ -45,16 +44,14 @@
         const x     = s.random(small,  s.width  - small),
               y     = s.random(small,  s.height - small),
               angle = s.random(s.TWO_PI);
-        pieces.push(
-          new Piece(vertsArr[i], x, y, angle, cols[i], s)
-        );
+        pieces.push(new Piece(vertsArr[i], x, y, angle, cols[i], s));
       }
     };
 
     s.draw = () => {
       s.clear();
       pieces.forEach(p => {
-        if (!selected || p !== selected) p.update();  // only auto‑move if not dragging
+        if (!selected || p !== selected) p.update();
         p.display();
       });
     };
@@ -87,17 +84,22 @@
         this.angle    = angle;
         this.col      = col;
         this.s        = s;
-        // ← new: tiny random velocity
+        // ← new: drift velocity
         this.vel = s.createVector(
           s.random(-0.5, 0.5),
           s.random(-0.5, 0.5)
         );
+        // ← new: angular velocity
+        this.avel = s.random(-0.01, 0.01);
       }
 
       update() {
         const s = this.s;
+        // move
         this.pos.add(this.vel);
-        // bounce off edges
+        // rotate
+        this.angle += this.avel;
+        // bounce
         if (this.pos.x < 0 || this.pos.x > s.width)  this.vel.x *= -1;
         if (this.pos.y < 0 || this.pos.y > s.height) this.vel.y *= -1;
       }
