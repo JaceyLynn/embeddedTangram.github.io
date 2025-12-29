@@ -21,9 +21,9 @@
 
     s.setup = () => {
       s.createCanvas(s.windowWidth, s.windowHeight);
-      const large = 200,
+      const large = 400,
             med   = large/Math.SQRT2,
-            small = 100;
+            small = 200;
 
       const vertsArr = [
         [[0,0],[large,0],[0,large]],               // big ×2
@@ -41,10 +41,42 @@
       ];
 
       for (let i = 0; i < vertsArr.length; i++) {
-        const x     = s.random(small,  s.width  - small),
-              y     = s.random(small,  s.height - small),
-              angle = s.random(s.TWO_PI);
-        pieces.push(new Piece(vertsArr[i], x, y, angle, cols[i], s));
+        let x, y, angle, newPiece;
+        let attempts = 0;
+        let overlapping = true;
+        
+        // Try to find a non-overlapping position
+        while (overlapping && attempts < 50) {
+          // Pick a random edge: 0=top, 1=right, 2=bottom, 3=left
+          const edge = Math.floor(s.random(4));
+          if (edge === 0) { // top
+            x = s.random(0, s.width);
+            y = s.random(-small, small);
+          } else if (edge === 1) { // right
+            x = s.random(s.width - small, s.width + small);
+            y = s.random(0, s.height);
+          } else if (edge === 2) { // bottom
+            x = s.random(0, s.width);
+            y = s.random(s.height - small, s.height + small);
+          } else { // left
+            x = s.random(-small, small);
+            y = s.random(0, s.height);
+          }
+          angle = s.random(s.TWO_PI);
+          newPiece = new Piece(vertsArr[i], x, y, angle, cols[i], s);
+          
+          // Check if this piece overlaps with any existing pieces
+          overlapping = false;
+          for (let j = 0; j < pieces.length; j++) {
+            if (piecesOverlap(newPiece, pieces[j], s)) {
+              overlapping = true;
+              break;
+            }
+          }
+          attempts++;
+        }
+        
+        pieces.push(newPiece);
       }
     };
 
@@ -86,11 +118,11 @@
         this.s        = s;
         // ← new: drift velocity
         this.vel = s.createVector(
-          s.random(-0.5, 0.5),
-          s.random(-0.5, 0.5)
+          s.random(-0.25, 0.25),
+          s.random(-0.25, 0.25)
         );
         // ← new: angular velocity
-        this.avel = s.random(-0.01, 0.01);
+        this.avel = s.random(-0.00167, 0.00167);
       }
 
       update() {
@@ -100,8 +132,8 @@
         // rotate
         this.angle += this.avel;
         // bounce
-        if (this.pos.x < 0 || this.pos.x > s.width)  this.vel.x *= -1;
-        if (this.pos.y < 0 || this.pos.y > s.height) this.vel.y *= -1;
+        if (this.pos.x < -3*s.width || this.pos.x > 6*s.width)  this.vel.x *= -1;
+        if (this.pos.y < -3*s.height || this.pos.y > 6*s.height) this.vel.y *= -1;
       }
 
       display() {
@@ -137,6 +169,26 @@
         if (intersect) inside = !inside;
       }
       return inside;
+    }
+
+    function piecesOverlap(p1, p2, s) {
+      // Calculate bounding radius for each piece
+      const getRadius = (piece) => {
+        let maxDist = 0;
+        piece.vertices.forEach(v => {
+          const dist = Math.sqrt(v[0] * v[0] + v[1] * v[1]);
+          if (dist > maxDist) maxDist = dist;
+        });
+        return maxDist;
+      };
+      
+      const r1 = getRadius(p1);
+      const r2 = getRadius(p2);
+      const dist = s.dist(p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y);
+      
+      // Add extra padding to ensure clear separation
+      const minDist = r1 + r2 + 100;
+      return dist < minDist;
     }
   };
 
